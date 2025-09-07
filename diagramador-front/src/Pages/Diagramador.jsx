@@ -3,6 +3,7 @@ import React from 'react';
 import Diagramador from '../Components/Diagramador.jsx';
 import { useState, useCallback } from 'react';
 import { addEdge } from 'reactflow';
+import ChatSidebar from '../Components/ChatSidebar.jsx';
 
 
 const RELACIONES = [
@@ -78,6 +79,35 @@ function DiagramadorPage() {
 			},
 		]);
 	}, [tipoRelacion]);
+
+	// Nueva función para que el chat pueda modificar el diagrama
+	const handlePrompt = async (prompt, setNodos, setAristas) => {
+		if (prompt.toLowerCase().includes('dos diagramas de clase')) {
+			// Generar dos nodos y una relación
+			const id1 = Date.now().toString();
+			const id2 = (Date.now() + 1).toString();
+			setNodos(nds => [
+				...nds,
+				{ id: id1, type: 'editableNode', data: { label: 'ClaseA', tipo: 'Clase' }, position: { x: 200, y: 200 } },
+				{ id: id2, type: 'editableNode', data: { label: 'ClaseB', tipo: 'Clase' }, position: { x: 500, y: 300 } },
+			]);
+			setAristas(eds => [
+				...eds,
+				{
+					id: `${id1}-${id2}-${Date.now()}`,
+					source: id1,
+					target: id2,
+					label: 'Asociación',
+					type: 'relacionConCardinalidad',
+					style: RELACIONES[0].style,
+					markerEnd: RELACIONES[0].markerEnd,
+					data: { cardinalidadOrigen: '1', cardinalidadDestino: '*' }
+				}
+			]);
+			return '¡Listo! Se agregaron dos clases y una relación de asociación.';
+		}
+		return 'No entendí tu petición, pero puedo ayudarte con diagramas de clase.';
+	};
 
 	return (
 		<div style={{ display: 'flex', minHeight: '100vh', background: '#ffffffff' }}>
@@ -169,6 +199,8 @@ function DiagramadorPage() {
 									}}
 								/>
 					</div>
+			{/* Chat Sidebar a la derecha */}
+			<ChatSidebar onPrompt={handlePrompt} setNodos={setNodos} setAristas={setAristas} />
 		</div>
 	);
 }
