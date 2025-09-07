@@ -6,13 +6,13 @@ import { addEdge } from 'reactflow';
 
 
 const RELACIONES = [
-	{ tipo: 'Asociación', descripcion: 'Relación simple entre clases', style: { markerEnd: 'url(#arrow)' } },
-	{ tipo: 'Asociación Dirigida', descripcion: 'Relación dirigida entre clases', style: { markerEnd: 'url(#arrow)' }, type: 'step' },
-	{ tipo: 'Agregación', descripcion: 'Una clase contiene a otra (pero pueden existir separadas)', style: { strokeDasharray: '5,5', markerEnd: 'url(#diamond)' }, type: 'smoothstep' },
-	{ tipo: 'Composición', descripcion: 'Una clase contiene a otra (dependencia fuerte)', style: { stroke: '#000', strokeWidth: 2, markerEnd: 'url(#filledDiamond)' }, type: 'smoothstep' },
-	{ tipo: 'Dependencia', descripcion: 'Una clase depende de otra', style: { strokeDasharray: '2,2', markerEnd: 'url(#arrow)' }, type: 'dashed' },
-	{ tipo: 'Generalización', descripcion: 'Herencia entre clases', style: { markerEnd: 'url(#triangle)' }, type: 'step' },
-	{ tipo: 'Realización de Interfaz', descripcion: 'Una clase implementa una interfaz', style: { markerEnd: 'url(#triangle)', strokeDasharray: '2,2' }, type: 'step' },
+	{ tipo: 'Asociación', descripcion: 'Relación simple entre clases', style: { stroke: '#1976d2', strokeWidth: 2 }, markerEnd: 'url(#arrow)' },
+	{ tipo: 'Asociación Dirigida', descripcion: 'Relación dirigida entre clases', style: { stroke: '#1976d2', strokeWidth: 2 }, markerEnd: 'url(#arrow)', type: 'step' },
+	{ tipo: 'Agregación', descripcion: 'Una clase contiene a otra (pero pueden existir separadas)', style: { stroke: '#666', strokeWidth: 2, strokeDasharray: '5,5' }, markerEnd: 'url(#diamond)', type: 'smoothstep' },
+	{ tipo: 'Composición', descripcion: 'Una clase contiene a otra (dependencia fuerte)', style: { stroke: '#000', strokeWidth: 2 }, markerEnd: 'url(#filledDiamond)', type: 'smoothstep' },
+	{ tipo: 'Dependencia', descripcion: 'Una clase depende de otra', style: { stroke: '#999', strokeWidth: 2, strokeDasharray: '2,2' }, markerEnd: 'url(#arrow)', type: 'dashed' },
+	{ tipo: 'Generalización', descripcion: 'Herencia entre clases', style: { stroke: '#4CAF50', strokeWidth: 2 }, markerEnd: 'url(#triangle)', type: 'step' },
+	{ tipo: 'Realización de Interfaz', descripcion: 'Una clase implementa una interfaz', style: { stroke: '#4CAF50', strokeWidth: 2, strokeDasharray: '2,2' }, markerEnd: 'url(#triangle)', type: 'step' },
 ];
 
 const TIPOS_NODO = [
@@ -71,15 +71,16 @@ function DiagramadorPage() {
 				...params,
 				id: `${params.source}-${params.target}-${Date.now()}`,
 				label: relacion.tipo,
-				animated: true,
+				animated: false,
 				style: relacion.style,
+				markerEnd: relacion.markerEnd || 'url(#arrow)',
 				type: relacion.type || 'default',
 			},
 		]);
 	}, [tipoRelacion]);
 
 	return (
-		<div style={{ display: 'flex', minHeight: '100vh', background: '#e9ecef' }}>
+		<div style={{ display: 'flex', minHeight: '100vh', background: '#ffffffff' }}>
 			{/* Sidebar */}
 			<div style={{ width: 260, background: '#fff', borderRight: '1px solid #ddd', padding: 20 }}>
 						<h2 style={{ marginBottom: 8 }}>Clases (Básico)</h2>
@@ -128,18 +129,7 @@ function DiagramadorPage() {
 								<option key={r.tipo} value={r.tipo}>{r.tipo}</option>
 							))}
 						</select>
-						<h2 style={{ marginTop: 24, fontSize: 16, color: '#888' }}>Leyenda</h2>
-						<ul style={{ paddingLeft: 16, fontSize: 15 }}>
-							{RELACIONES.map(r => (
-								<li key={r.tipo} style={{ marginBottom: 10, color: '#1976d2', display: 'flex', alignItems: 'center', gap: 6 }}>
-									<span style={{ display: 'inline-block', width: 18, height: 18 }}>
-										{/* Aquí podrías poner un SVG o icono según el tipo */}
-									</span>
-									<b style={{ color: '#222' }}>{r.tipo}</b>
-									<span style={{ fontSize: 12, color: '#555' }}>{r.descripcion}</span>
-								</li>
-							))}
-						</ul>
+						
 			</div>
 			{/* Diagrama */}
 					<div style={{ flex: 1, padding: 24, background: '#f4f6fa', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>

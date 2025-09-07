@@ -1,419 +1,654 @@
+// =====================
+// IMPORTS DE LIBRERÍAS
+// =====================
 import React, { useCallback, useState, useRef } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
   Background,
   Handle,
-  Position
+  Position,
+  getStraightPath,
+  BaseEdge,
+  EdgeLabelRenderer
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import '../styles/Diagramador.css';
 
-// ========================================
-// CONFIGURACIÓN DE TIPOS DE RELACIONES UML
-// ========================================
-
-/**
- * Definición de los tipos de relaciones UML disponibles
- * Cada relación triene su propio estilo visual y tipo de línea
- */
+// =====================
+// DECLARACIÓN DE CONST
+// =====================
 const RELACIONES = [
-  { tipo: 'Asociación', style: { markerEnd: 'url(#arrow)' }, type: 'default' },
-  { tipo: 'Asociación Dirigida', style: { markerEnd: 'url(#arrow)' }, type: 'step' },
-  { tipo: 'Agregación', style: { strokeDasharray: '5,5', markerEnd: 'url(#diamond)' }, type: 'smoothstep' },
-  { tipo: 'Composición', style: { stroke: '#000', strokeWidth: 2, markerEnd: 'url(#filledDiamond)' }, type: 'smoothstep' },
-  { tipo: 'Dependencia', style: { strokeDasharray: '2,2', markerEnd: 'url(#arrow)' }, type: 'dashed' },
-  { tipo: 'Generalización', style: { markerEnd: 'url(#triangle)' }, type: 'step' },
-  { tipo: 'Realización de Interfaz', style: { markerEnd: 'url(#triangle)', strokeDasharray: '2,2' }, type: 'step' },
+  { tipo: 'Composición', style: { stroke: '#000', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#filledDiamond)' },
+  { tipo: 'Agregación', style: { stroke: '#666', strokeWidth: 2, strokeDasharray: '5,5' }, type: 'relacionConCardinalidad', markerEnd: 'url(#diamond)' },
+  { tipo: 'Asociación', style: { stroke: '#1976d2', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#arrow)' },
+  { tipo: 'Herencia', style: { stroke: '#4CAF50', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#triangle)' },
 ];
 
-// ========================================
-// COMPONENTE NODO EDITABLE
-// ========================================
+// =====================
+// FUNCIONES/COMPONENTES
+// =====================
 
-/**
- * Componente EditableNode - Representa una clase UML con capacidad de edición
- * Permite editar el nombre de la clase y agregar/editar/eliminar atributos
- * 
- * @param {string} id - Identificador único del nodo
- * @param {object} data - Datos del nodo (label, tipo, atributos, onLabelChange)
- * @param {boolean} selected - Si el nodo está seleccionado
- * @param {boolean} isConnectable - Si se pueden conectar relaciones a este nodo
- */
-function EditableNode({ id, data, selected, isConnectable }) {
-  // Estados para la edición del nombre de la clase
-  const [editando, setEditando] = useState(false);
-  const [valor, setValor] = useState(data.label);
-  
-  // Estados para la gestión de atributos
+// Nodo editable básico para React Flow
+function EditableNode({ data, selected }) {
+  const [editandoNombre, setEditandoNombre] = useState(false);
+  const [nombre, setNombre] = useState(data.label || 'Clase');
   const [atributos, setAtributos] = useState(data.atributos || []);
-  const [editandoAtributo, setEditandoAtributo] = useState(-1);
   const [nuevoAtributo, setNuevoAtributo] = useState('');
+  const inputNombreRef = useRef(null);
+  const inputAtributoRef = useRef(null);
 
-  /**
-   * Sincroniza los valores locales con los datos externos cuando cambian
-   */
-  React.useEffect(() => {
-    setValor(data.label);
-    setAtributos(data.atributos || []);
-  }, [data.label, data.atributos]);
-
-  /**
-   * Maneja el final de la edición del nombre de la clase
-   * Guarda el nuevo nombre si es válido y diferente al anterior
-   */
-  const handleBlur = () => {
-    setEditando(false);
-    if (valor.trim() && valor !== data.label && data.onLabelChange) {
-      data.onLabelChange(id, valor);
+  const actualizarNodo = (nuevoNombre, nuevosAtributos) => {
+    if (data.onLabelChange) {
+      data.onLabelChange(data.id, nuevoNombre, nuevosAtributos);
     }
   };
 
-  /**
-   * Agrega un nuevo atributo a la clase
-   * Valida que el atributo no esté vacío antes de agregarlo
-   */
   const agregarAtributo = () => {
     if (nuevoAtributo.trim()) {
       const nuevosAtributos = [...atributos, nuevoAtributo.trim()];
       setAtributos(nuevosAtributos);
+      actualizarNodo(nombre, nuevosAtributos);
       setNuevoAtributo('');
-      if (data.onLabelChange) {
-        data.onLabelChange(id, valor, nuevosAtributos);
-      }
     }
   };
 
-  /**
-   * Edita un atributo existente por su índice
-   * @param {number} index - Índice del atributo a editar
-   * @param {string} nuevoValor - Nuevo valor del atributo
-   */
-  const editarAtributo = (index, nuevoValor) => {
-    const nuevosAtributos = [...atributos];
-    nuevosAtributos[index] = nuevoValor;
+  const eliminarAtributo = (indice) => {
+    const nuevosAtributos = atributos.filter((_, i) => i !== indice);
     setAtributos(nuevosAtributos);
-    if (data.onLabelChange) {
-      data.onLabelChange(id, valor, nuevosAtributos);
-    }
+    actualizarNodo(nombre, nuevosAtributos);
   };
 
-  /**
-   * Elimina un atributo por su índice
-   * @param {number} index - Índice del atributo a eliminar
-   */
-  const eliminarAtributo = (index) => {
-    const nuevosAtributos = atributos.filter((_, i) => i !== index);
+  const editarAtributo = (indice, nuevoValor) => {
+    const nuevosAtributos = atributos.map((attr, i) => i === indice ? nuevoValor : attr);
     setAtributos(nuevosAtributos);
-    if (data.onLabelChange) {
-      data.onLabelChange(id, valor, nuevosAtributos);
-    }
+    actualizarNodo(nombre, nuevosAtributos);
   };
+
+  React.useEffect(() => {
+    setNombre(data.label || 'Clase');
+    setAtributos(data.atributos || []);
+  }, [data.label, data.atributos]);
+
+  const esInterfaz = data.tipo === 'Interfaz';
 
   return (
-    <div style={{
-      background: data.tipo === 'Interfaz' ? '#fffbe6' : '#fff',
-      border: data.tipo === 'Interfaz' ? '2px dashed #b59f00' : '2px solid #1976d2',
-      borderRadius: 8,
-      minWidth: 140,
-      minHeight: 60,
-      padding: 8,
-      boxShadow: selected ? '0 0 0 2px #1976d2' : '0 1px 4px #0001',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'stretch',
-      fontWeight: 600,
-      fontSize: 14,
-      cursor: 'pointer',
-      position: 'relative',
-    }}>
-      <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
+    <div className={`editable-node ${esInterfaz ? 'editable-node-interfaz' : ''} ${selected ? 'editable-node-selected' : ''}`}>
+      {/* Handles para conectar relaciones */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        style={{ background: '#1976d2' }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        style={{ background: '#1976d2' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        style={{ background: '#1976d2' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        style={{ background: '#1976d2' }}
+      />
       
-      {/* Nombre de la clase */}
-      <div style={{ textAlign: 'center', borderBottom: '1px solid #ddd', paddingBottom: 4, marginBottom: 4 }}>
-        {editando ? (
+      <div className="editable-node-header">
+        {editandoNombre ? (
           <input
-            value={valor}
+            ref={inputNombreRef}
+            value={nombre}
+            onChange={e => setNombre(e.target.value)}
+            onBlur={() => {
+              setEditandoNombre(false);
+              actualizarNodo(nombre, atributos);
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                setEditandoNombre(false);
+                actualizarNodo(nombre, atributos);
+              }
+            }}
+            className="editable-node-header-input"
             autoFocus
-            onChange={e => setValor(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={e => { if (e.key === 'Enter') handleBlur(); }}
-            style={{ fontSize: 14, fontWeight: 600, border: 'none', outline: 'none', background: 'transparent', textAlign: 'center', color: '#111', width: '100%' }}
           />
         ) : (
-          <span onDoubleClick={() => setEditando(true)} title="Doble click para editar" style={{ color: '#111', display: 'block' }}>
-            {data.label || <span style={{ color: '#bbb' }}>Sin nombre</span>}
+          <span 
+            className={`editable-node-header-span ${!nombre ? 'editable-node-header-placeholder' : ''}`}
+            onClick={() => setEditandoNombre(true)}
+          >
+            {nombre || 'Nombre de la clase'}
           </span>
         )}
-        <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{data.tipo}</div>
+        {esInterfaz && <div className="editable-node-header-tipo">{'<<interface>>'}</div>}
       </div>
-
-      {/* Lista de atributos */}
-      <div style={{ fontSize: 12, color: '#333' }}>
-        {atributos.map((atributo, index) => (
-          <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: 2, justifyContent: 'space-between' }}>
-            {editandoAtributo === index ? (
-              <input
-                value={atributo}
-                autoFocus
-                onChange={e => editarAtributo(index, e.target.value)}
-                onBlur={() => setEditandoAtributo(-1)}
-                onKeyDown={e => { if (e.key === 'Enter') setEditandoAtributo(-1); }}
-                style={{ fontSize: 12, border: 'none', outline: 'none', background: 'transparent', color: '#333', flex: 1 }}
-              />
-            ) : (
-              <span 
-                onDoubleClick={() => setEditandoAtributo(index)} 
-                style={{ flex: 1, cursor: 'pointer' }}
-                title="Doble click para editar"
-              >
-                • {atributo}
-              </span>
-            )}
-            <button
-              onClick={() => eliminarAtributo(index)}
-              style={{ background: 'none', border: 'none', color: '#d32f2f', cursor: 'pointer', fontSize: 10, padding: 0, marginLeft: 4 }}
-            >
-              ✕
-            </button>
-          </div>
+      
+      <div className="editable-node-atributos">
+        {atributos.map((atributo, indice) => (
+          <AtributoEditable
+            key={indice}
+            valor={atributo}
+            onCambio={(nuevoValor) => editarAtributo(indice, nuevoValor)}
+            onEliminar={() => eliminarAtributo(indice)}
+          />
         ))}
-        
-        {/* Input para agregar nuevo atributo */}
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
+        <div className="editable-node-atributo-add-row">
           <input
+            ref={inputAtributoRef}
             value={nuevoAtributo}
             onChange={e => setNuevoAtributo(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') agregarAtributo(); }}
-            placeholder="+ atributo"
-            style={{ fontSize: 11, border: 'none', outline: 'none', background: 'transparent', color: '#888', flex: 1, fontStyle: 'italic' }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                agregarAtributo();
+              }
+            }}
+            placeholder="Nuevo atributo..."
+            className="editable-node-atributo-add-input"
           />
           <button
             onClick={agregarAtributo}
-            style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', fontSize: 12, padding: 0 }}
+            className="editable-node-atributo-add-btn"
           >
             +
           </button>
         </div>
       </div>
-
-      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />
     </div>
   );
 }
 
-// ========================================
-// CONFIGURACIÓN DE TIPOS DE NODOS
-// ========================================
+// Componente auxiliar para editar atributos
+function AtributoEditable({ valor, onCambio, onEliminar }) {
+  const [editando, setEditando] = useState(false);
+  const [valorTemp, setValorTemp] = useState(valor);
+  const inputRef = useRef(null);
 
-/**
- * Configuración de tipos de nodos para React Flow
- * Define qué componente usar para cada tipo de nodo
- */
+  React.useEffect(() => {
+    setValorTemp(valor);
+  }, [valor]);
+
+  return (
+    <div className="editable-node-atributo-row">
+      {editando ? (
+        <input
+          ref={inputRef}
+          value={valorTemp}
+          onChange={e => setValorTemp(e.target.value)}
+          onBlur={() => {
+            setEditando(false);
+            onCambio(valorTemp);
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              setEditando(false);
+              onCambio(valorTemp);
+            }
+          }}
+          className="editable-node-atributo-input"
+          autoFocus
+        />
+      ) : (
+        <span
+          className="editable-node-atributo-span"
+          onClick={() => setEditando(true)}
+        >
+          {valor}
+        </span>
+      )}
+      <button
+        onClick={onEliminar}
+        className="editable-node-atributo-delete"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+// COMPONENTE PERSONALIZADO DE RELACIÓN CON CARDINALIDAD
+function RelacionConCardinalidad({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style = {}, data = {}, markerEnd }) {
+  // Estado para menú contextual de cardinalidad
+  const [menuCard, setMenuCard] = useState({ visible: false, x: 0, y: 0, lado: null });
+
+  // Opciones de cardinalidad
+  const opcionesCard = ['0', '1', '*'];
+
+  // Cerrar menú contextual al hacer click fuera
+  React.useEffect(() => {
+    if (!menuCard.visible) return;
+    const cerrar = () => setMenuCard({ visible: false, x: 0, y: 0, lado: null });
+    window.addEventListener('click', cerrar);
+    return () => window.removeEventListener('click', cerrar);
+  }, [menuCard.visible]);
+  const [editandoOrigen, setEditandoOrigen] = useState(false);
+  const [editandoDestino, setEditandoDestino] = useState(false);
+  const [editandoNombre, setEditandoNombre] = useState(false);
+  const [valorOrigen, setValorOrigen] = useState(data.cardinalidadOrigen ?? '1');
+  const [valorDestino, setValorDestino] = useState(data.cardinalidadDestino ?? '*');
+  const [valorNombre, setValorNombre] = useState(data.label || '');
+  const inputOrigenRef = useRef(null);
+  const inputDestinoRef = useRef(null);
+  const inputNombreRef = useRef(null);
+  const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+
+  React.useEffect(() => {
+    if (!editandoOrigen && data.cardinalidadOrigen !== undefined && data.cardinalidadOrigen !== valorOrigen) {
+      setValorOrigen(data.cardinalidadOrigen);
+    }
+  }, [data.cardinalidadOrigen]);
+  
+  React.useEffect(() => {
+    if (!editandoDestino && data.cardinalidadDestino !== undefined && data.cardinalidadDestino !== valorDestino) {
+      setValorDestino(data.cardinalidadDestino);
+    }
+  }, [data.cardinalidadDestino]);
+  
+  React.useEffect(() => {
+    setValorNombre(data.label || '');
+  }, [data.label]);
+
+  const midX = sourceX + (targetX - sourceX) * 0.5;
+  const midY = sourceY + (targetY - sourceY) * 0.5;
+
+  const actualizarCardinalidad = (lado, valor) => {
+    window.dispatchEvent(
+      new CustomEvent('actualizarCardinalidad', {
+        detail: { id, lado, valor }
+      })
+    );
+  };
+
+  const actualizarNombre = (valor) => {
+    window.dispatchEvent(
+      new CustomEvent('actualizarNombreRelacion', {
+        detail: { id, valor }
+      })
+    );
+  };
+
+  // Mostrar el tipo de flecha (nombre de la relación) siempre, editable con doble click
+  return (
+    <>
+      <BaseEdge 
+        path={path} 
+        markerEnd={markerEnd} 
+        style={{
+          stroke: style.stroke || '#1976d2',
+          strokeWidth: style.strokeWidth || 2,
+          strokeDasharray: style.strokeDasharray || '0',
+          ...style
+        }} 
+      />
+      <EdgeLabelRenderer>
+        {/* Cardinalidad origen */}
+        <div
+          className="edge-cardinalidad edge-cardinalidad-origen"
+          style={{ left: sourceX + (targetX - sourceX) * 0.12, top: sourceY + (targetY - sourceY) * 0.12, minWidth: 24, minHeight: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: editandoOrigen ? '2px solid #1976d2' : undefined, background: editandoOrigen ? '#e3f2fd' : undefined }}
+          onClick={e => { e.stopPropagation(); setEditandoOrigen(true); }}
+          onContextMenu={e => {
+            e.preventDefault();
+            setMenuCard({ visible: true, x: e.clientX, y: e.clientY, lado: 'origen' });
+          }}
+        >
+          {editandoOrigen ? (
+            <input
+              ref={el => {
+                inputOrigenRef.current = el;
+                if (el) { el.focus(); el.select(); }
+              }}
+              value={valorOrigen}
+              onChange={e => setValorOrigen(e.target.value)}
+              onBlur={() => {
+                setEditandoOrigen(false);
+                actualizarCardinalidad('origen', valorOrigen);
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setEditandoOrigen(false);
+                  actualizarCardinalidad('origen', valorOrigen);
+                }
+              }}
+              className="edge-cardinalidad-input"
+              style={{ width: 28, textAlign: 'center' }}
+            />
+          ) : (
+            <span className="edge-cardinalidad-span" style={{ width: 24, textAlign: 'center', color: '#1976d2', fontWeight: 700 }}>{valorOrigen}</span>
+          )}
+        </div>
+        {/* Cardinalidad destino */}
+        <div
+          className="edge-cardinalidad edge-cardinalidad-destino"
+          style={{ left: targetX + (sourceX - targetX) * 0.12, top: targetY + (sourceY - targetY) * 0.12, minWidth: 24, minHeight: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: editandoDestino ? '2px solid #1976d2' : undefined, background: editandoDestino ? '#e3f2fd' : undefined }}
+          onClick={e => { e.stopPropagation(); setEditandoDestino(true); }}
+          onContextMenu={e => {
+            e.preventDefault();
+            setMenuCard({ visible: true, x: e.clientX, y: e.clientY, lado: 'destino' });
+          }}
+        >
+          {editandoDestino ? (
+            <input
+              ref={el => {
+                inputDestinoRef.current = el;
+                if (el) { el.focus(); el.select(); }
+              }}
+              value={valorDestino}
+              onChange={e => setValorDestino(e.target.value)}
+              onBlur={() => {
+                setEditandoDestino(false);
+                actualizarCardinalidad('destino', valorDestino);
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setEditandoDestino(false);
+                  actualizarCardinalidad('destino', valorDestino);
+                }
+              }}
+              className="edge-cardinalidad-input"
+              style={{ width: 28, textAlign: 'center' }}
+            />
+          ) : (
+            <span className="edge-cardinalidad-span" style={{ width: 24, textAlign: 'center', color: '#1976d2', fontWeight: 700 }}>{valorDestino}</span>
+          )}
+        </div>
+      {/* Menú contextual de cardinalidad */}
+      {menuCard.visible && (
+        <div
+          style={{
+            position: 'fixed',
+            top: menuCard.y,
+            left: menuCard.x,
+            background: '#fff',
+            border: '1px solid #1976d2',
+            borderRadius: 4,
+            boxShadow: '0 1px 4px #0002',
+            zIndex: 2000,
+            padding: 0,
+            minWidth: 40,
+            fontSize: 14,
+            minHeight: 0
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {opcionesCard.map(op => (
+            <button
+              key={op}
+              onClick={() => {
+                setMenuCard({ visible: false, x: 0, y: 0, lado: null });
+                if (menuCard.lado === 'origen') actualizarCardinalidad('origen', op);
+                if (menuCard.lado === 'destino') actualizarCardinalidad('destino', op);
+              }}
+              style={{
+                width: '100%',
+                padding: '4px 0',
+                background: 'none',
+                border: 'none',
+                color: '#1976d2',
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'background 0.2s',
+                minHeight: 0
+              }}
+              onMouseOver={e => e.currentTarget.style.background='#e3f2fd'}
+              onMouseOut={e => e.currentTarget.style.background='none'}
+            >
+              {op}
+            </button>
+          ))}
+        </div>
+      )}
+        {/* Nombre de la relación (tipo de flecha) SIEMPRE visible y editable con doble click */}
+        <div
+          className="edge-label"
+          style={{ left: midX, top: midY, background: '#fff', border: '2px solid #1976d2', color: style.stroke || '#1976d2', fontWeight: 700 }}
+          onDoubleClick={e => { e.stopPropagation(); setEditandoNombre(true); }}
+        >
+          {editandoNombre ? (
+            <input
+              ref={inputNombreRef}
+              value={valorNombre}
+              onChange={e => setValorNombre(e.target.value)}
+              onBlur={() => { setEditandoNombre(false); actualizarNombre(valorNombre); }}
+              onKeyDown={e => { if (e.key === 'Enter') { setEditandoNombre(false); actualizarNombre(valorNombre); }}}
+              className="edge-label-input"
+              autoFocus
+            />
+          ) : (
+            valorNombre || 'Relación'
+          )}
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+// =====================
+// CONSTANTES DE CONFIGURACIÓN
+// =====================
 const nodeTypes = {
   editableNode: EditableNode,
 };
 
-// ========================================
-// COMPONENTE PRINCIPAL DEL DIAGRAMADOR
-// ========================================
+const tiposDeRelacion = {
+  relacionConCardinalidad: RelacionConCardinalidad,
+};
 
-/**
- * Componente Diagramador - Interfaz principal para crear diagramas UML
- * Maneja la visualización, edición y manipulación de nodos y relaciones
- * 
- * @param {Array} nodesProp - Lista de nodos del diagrama
- * @param {Array} edgesProp - Lista de relaciones del diagrama  
- * @param {Function} onNodesChange - Callback para cambios en nodos
- * @param {Function} onEdgesChange - Callback para cambios en relaciones
- * @param {Function} onConnect - Callback para nuevas conexiones
- * @param {Function} onLabelChange - Callback para cambios en etiquetas
- */
+// =====================
+// COMPONENTE PRINCIPAL
+// =====================
 function Diagramador({ nodesProp, edgesProp, onNodesChange, onEdgesChange, onConnect, onLabelChange }) {
-  // ========================================
-  // PREPARACIÓN DE DATOS
-  // ========================================
-  
-  /**
-   * Asegura que los arrays de nodos y relaciones sean válidos
-   * Previene errores si se pasan valores undefined o null
-   */
-  const nodes = Array.isArray(nodesProp) ? nodesProp : [];
-  const edges = Array.isArray(edgesProp) ? edgesProp : [];
+  // Estado para controlar el menú contextual de las relaciones
+  const [menuContextual, setMenuContextual] = useState(null);
+  const [cardinalidadOrigen, setCardinalidadOrigen] = useState('');
+  const [cardinalidadDestino, setCardinalidadDestino] = useState('');
+  const diagramaRef = useRef();
 
-  /**
-   * Convierte todos los nodos a tipo 'editableNode' y les pasa la función onLabelChange
-   * Esto permite que todos los nodos sean editables con funcionalidad consistente
-   */
-  const customNodes = nodes.map(n => ({
+  // Asegura que los arrays de nodos y relaciones sean válidos
+  const nodos = Array.isArray(nodesProp) ? nodesProp : [];
+  const relaciones = Array.isArray(edgesProp) ? edgesProp : [];
+
+  // Convierte todos los nodos a tipo 'editableNode'
+  const nodosPersonalizados = nodos.map(n => ({
     ...n,
     type: 'editableNode',
-    data: { ...n.data, onLabelChange },
+    data: { ...n.data, id: n.id, onLabelChange },
   }));
 
-  // ========================================
-  // GESTIÓN DEL MENÚ CONTEXTUAL
-  // ========================================
-  
-  // Estado para controlar el menú contextual de las relaciones
-  const [contextMenu, setContextMenu] = useState(null); // {edgeId, x, y}
-  const diagramRef = useRef();
+  // Convertir todas las relaciones a tipo personalizado para permitir edición directa
+  const relacionesPersonalizadas = relaciones.map(rel => {
+    // Buscar el tipo de relación para obtener el markerEnd correcto
+    let markerEnd = rel.markerEnd;
+    if (!markerEnd && rel.label) {
+      const tipo = RELACIONES.find(r => r.tipo === rel.label);
+      if (tipo && tipo.markerEnd) markerEnd = tipo.markerEnd;
+    }
+    return {
+      ...rel,
+      type: 'relacionConCardinalidad',
+      markerEnd,
+      data: {
+        ...rel.data,
+        cardinalidadOrigen: rel.data?.cardinalidadOrigen ?? '1',
+        cardinalidadDestino: rel.data?.cardinalidadDestino ?? '*',
+        label: rel.data?.label || rel.label || '',
+      }
+    };
+  });
 
-  /**
-   * Maneja el click derecho sobre una relación (edge)
-   * Muestra el menú contextual en la posición del cursor
-   * @param {Event} event - Evento del click derecho
-   * @param {Object} edge - Objeto de la relación clickeada
-   */
-  const onEdgeContextMenu = useCallback((event, edge) => {
-    event.preventDefault();
-    setContextMenu({ edgeId: edge.id, x: event.clientX, y: event.clientY });
+  // Manejar actualización de cardinalidad y nombre desde el componente de edge
+  React.useEffect(() => {
+    const handlerCard = (e) => {
+      const { id, lado, valor } = e.detail;
+      const nuevasRelaciones = relaciones.map(rel => {
+        if (rel.id !== id) return rel;
+        return {
+          ...rel,
+          data: {
+            ...rel.data,
+            cardinalidadOrigen: lado === 'origen' ? valor : rel.data?.cardinalidadOrigen ?? '1',
+            cardinalidadDestino: lado === 'destino' ? valor : rel.data?.cardinalidadDestino ?? '*',
+          }
+        };
+      });
+      if (onEdgesChange) {
+        onEdgesChange(nuevasRelaciones.map(rel => ({ id: rel.id, type: 'replace', item: rel })));
+      }
+    };
+    
+    const handlerNombre = (e) => {
+      const { id, valor } = e.detail;
+      const nuevasRelaciones = relaciones.map(rel => {
+        if (rel.id !== id) return rel;
+        return {
+          ...rel,
+          data: {
+            ...rel.data,
+            label: valor
+          }
+        };
+      });
+      if (onEdgesChange) {
+        onEdgesChange(nuevasRelaciones.map(rel => ({ id: rel.id, type: 'replace', item: rel })));
+      }
+    };
+    
+    window.addEventListener('actualizarCardinalidad', handlerCard);
+    window.addEventListener('actualizarNombreRelacion', handlerNombre);
+    return () => {
+      window.removeEventListener('actualizarCardinalidad', handlerCard);
+      window.removeEventListener('actualizarNombreRelacion', handlerNombre);
+    };
+  }, [relaciones, onEdgesChange]);
+
+  // Maneja el click derecho sobre una relación
+  const alMenuContextualRelacion = useCallback((evento, relacion) => {
+    evento.preventDefault();
+    setMenuContextual({ idRelacion: relacion.id, x: evento.clientX, y: evento.clientY });
+    setCardinalidadOrigen(relacion.data?.cardinalidadOrigen || '');
+    setCardinalidadDestino(relacion.data?.cardinalidadDestino || '');
   }, []);
 
-  /**
-   * Elimina una relación del diagrama
-   * Se ejecuta cuando el usuario selecciona "Eliminar" en el menú contextual
-   */
-  const handleDeleteEdge = () => {
-    if (contextMenu && contextMenu.edgeId && onEdgesChange) {
-      onEdgesChange([{ id: contextMenu.edgeId, type: 'remove' }]);
+  // Elimina una relación del diagrama
+  const eliminarRelacion = () => {
+    if (menuContextual && menuContextual.idRelacion && onEdgesChange) {
+      onEdgesChange([{ id: menuContextual.idRelacion, type: 'remove' }]);
     }
-    setContextMenu(null);
+    setMenuContextual(null);
   };
 
-  /**
-   * Cambia el tipo de una relación existente
-   * Actualiza el estilo visual y la etiqueta de la relación
-   * @param {Object} relacion - Objeto con la nueva configuración de relación
-   */
-  const handleChangeTipoRelacion = (relacion) => {
-    if (contextMenu && contextMenu.edgeId) {
-      // Actualizar el edge directamente en el state del componente padre
-      const updatedEdges = edges.map(edge => 
-        edge.id === contextMenu.edgeId 
+  // Cambia el tipo de una relación existente
+  const cambiarTipoRelacion = (relacion) => {
+    if (menuContextual && menuContextual.idRelacion) {
+      const relacionesActualizadas = relaciones.map(rel =>
+        rel.id === menuContextual.idRelacion
           ? {
-              ...edge,
+              ...rel,
               label: relacion.tipo,
               style: relacion.style,
               type: relacion.type || 'default',
+              markerEnd: relacion.markerEnd,
+              data: {
+                ...rel.data,
+                label: relacion.tipo,
+                cardinalidadOrigen,
+                cardinalidadDestino
+              }
             }
-          : edge
+          : rel
       );
-      
-      // Llamar al parent component para actualizar el state
       if (onEdgesChange) {
-        onEdgesChange(updatedEdges.map(edge => ({
-          id: edge.id,
+        onEdgesChange(relacionesActualizadas.map(rel => ({
+          id: rel.id,
           type: 'replace',
-          item: edge
+          item: rel
         })));
       }
     }
-    setContextMenu(null);
-  };
+    setMenuContextual(null);
+  }
 
-  // ========================================
-  // GESTIÓN DEL MOVIMIENTO DE RELACIONES
-  // ========================================
-  
-  /**
-   * Maneja el movimiento de relaciones entre nodos
-   * Permite arrastrar el extremo de una relación de un nodo a otro
-   * @param {Object} oldEdge - La relación original antes del movimiento
-   * @param {Object} newConnection - Las nuevas conexiones de la relación
-   */
-  const onEdgeUpdate = useCallback((oldEdge, newConnection) => {
-    console.log('Edge update:', oldEdge, newConnection); // Debug
+  // Maneja el movimiento de relaciones entre nodos
+  const alActualizarRelacion = useCallback((relacionVieja, nuevaConexion) => {
     if (onEdgesChange) {
-      // Crear el nuevo edge con las nuevas conexiones, manteniendo todas las propiedades del edge original
-      const newEdge = {
-        ...oldEdge,
-        source: newConnection.source,
-        target: newConnection.target,
-        sourceHandle: newConnection.sourceHandle,
-        targetHandle: newConnection.targetHandle,
-        id: `${newConnection.source}-${newConnection.target}-${Date.now()}`,
+      const nuevaRelacion = {
+        ...relacionVieja,
+        source: nuevaConexion.source,
+        target: nuevaConexion.target,
+        sourceHandle: nuevaConexion.sourceHandle,
+        targetHandle: nuevaConexion.targetHandle,
+        id: `${nuevaConexion.source}-${nuevaConexion.target}-${Date.now()}`,
       };
-      
-      // Actualizar la lista de edges: eliminar el viejo y agregar el nuevo
       onEdgesChange([
-        { id: oldEdge.id, type: 'remove' },
-        { type: 'add', item: newEdge }
+        { id: relacionVieja.id, type: 'remove' },
+        { type: 'add', item: nuevaRelacion }
       ]);
     }
   }, [onEdgesChange]);
 
-  // ========================================
-  // GESTIÓN DE EVENTOS GLOBALES
-  // ========================================
-  
-  /**
-   * Cierra el menú contextual cuando se hace click fuera de él
-   * Se ejecuta como efecto para limpiar event listeners
-   */
+  // Cierra el menú contextual cuando se hace click fuera de él
   React.useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
-    window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
-  }, [contextMenu]);
+    if (!menuContextual) return;
+    const cerrar = () => setMenuContextual(null);
+    window.addEventListener('click', cerrar);
+    return () => window.removeEventListener('click', cerrar);
+  }, [menuContextual]);
 
-  // ========================================
-  // RENDERIZADO DEL COMPONENTE
-  // ========================================
-  
+  // =====================
+  // CÓDIGO FRONT (JSX)
+  // =====================
   return (
-    <div className="diagramador-canvas" ref={diagramRef} style={{ position: 'relative' }}>
-      {/* Componente principal de React Flow para el diagrama */}
+    <div className="diagramador-canvas" ref={diagramaRef} style={{ position: 'relative' }}>
       <ReactFlow
-        nodes={customNodes}
-        edges={edges}
+        nodes={nodosPersonalizados}
+        edges={relacionesPersonalizadas}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={tiposDeRelacion}
         fitView
         nodesDraggable
         nodesConnectable
         edgesUpdatable
-        onEdgeContextMenu={onEdgeContextMenu}
-        onEdgeUpdate={onEdgeUpdate}
+        onEdgeContextMenu={alMenuContextualRelacion}
+        onEdgeUpdate={alActualizarRelacion}
       >
-        {/* Mini mapa para navegación */}
         <MiniMap />
-        {/* Controles de zoom y fit */}
         <Controls />
-        {/* Fondo con patrón de puntos */}
         <Background gap={16} />
       </ReactFlow>
-      
+
       {/* Menú contextual para relaciones */}
-      {contextMenu && (
+      {menuContextual && (
         <div
           style={{
             position: 'fixed',
-            top: contextMenu.y,
-            left: contextMenu.x,
+            top: menuContextual.y,
+            left: menuContextual.x,
             background: '#fff',
             border: '1px solid #1976d2',
             borderRadius: 4,
             boxShadow: '0 1px 4px #0002',
             zIndex: 1000,
             padding: 0,
-            minWidth: 90,
+            minWidth: 120,
             fontSize: 12,
             minHeight: 0
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Encabezado del menú */}
           <div style={{padding:'2px 0 2px 0', borderBottom:'1px solid #eee', fontWeight:600, color:'#1976d2', textAlign:'center', fontSize:12}}>Relación</div>
-          
-          {/* Lista de tipos de relación disponibles */}
           {RELACIONES.map(relacion => (
             <button
               key={relacion.tipo}
-              onClick={() => handleChangeTipoRelacion(relacion)}
+              onClick={() => cambiarTipoRelacion(relacion)}
               style={{
                 width:'100%',
                 padding:'2px 0 2px 8px',
@@ -433,10 +668,8 @@ function Diagramador({ nodesProp, edgesProp, onNodesChange, onEdgesChange, onCon
               {relacion.tipo}
             </button>
           ))}
-          
-          {/* Botón para eliminar la relación */}
           <button
-            onClick={handleDeleteEdge}
+            onClick={eliminarRelacion}
             style={{
               width:'100%',
               padding:'2px 0',
@@ -461,4 +694,7 @@ function Diagramador({ nodesProp, edgesProp, onNodesChange, onEdgesChange, onCon
   );
 }
 
+// =====================
+// EXPORT DEFAULT
+// =====================
 export default Diagramador;

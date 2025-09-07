@@ -7,3 +7,165 @@
 	box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 	transition: box-shadow 0.2s;
 }
+
+/* EDGE CARDINALIDAD Y LABEL */
+.edge-cardinalidad {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	background: #fff;
+	padding: 1px 4px;
+	border-radius: 4px;
+	font-size: 11px;
+	border: 1px solid #bbb;
+	color: #1976d2;
+	font-weight: 600;
+	min-width: 16px;
+	cursor: pointer;
+	z-index: 10;
+}
+.edge-cardinalidad-input {
+	width: 22px;
+	font-size: 11px;
+	border: 1px solid #1976d2;
+	border-radius: 3px;
+	padding: 0 2px;
+	color: #1976d2;
+	font-weight: 600;
+}
+.edge-cardinalidad-span {
+	min-width: 16px;
+	display: inline-block;
+}
+.edge-label {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	background: #fff;
+	border: 1px solid #1976d2;
+	border-radius: 4px;
+	padding: 2px 8px;
+	font-size: 12px;
+	color: #1976d2;
+	font-weight: 700;
+	pointer-events: auto;
+	z-index: 9;
+	min-width: 30px;
+	text-align: center;
+	user-select: none;
+	cursor: pointer;
+}
+.edge-label-input {
+	font-size: 12px;
+	border: 1px solid #1976d2;
+	border-radius: 3px;
+	padding: 0 4px;
+	color: #1976d2;
+	font-weight: 700;
+	min-width: 30px;
+	text-align: center;
+}
+
+/* NODO EDITABLE */
+.editable-node {
+	background: #fff;
+	border: 2px solid #1976d2;
+	border-radius: 8px;
+	min-width: 140px;
+	min-height: 60px;
+	padding: 8px;
+	box-shadow: 0 1px 4px #0001;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	font-weight: 600;
+	font-size: 14px;
+	cursor: pointer;
+	position: relative;
+}
+.editable-node-interfaz {
+	background: #fffbe6;
+	border: 2px dashed #b59f00;
+}
+.editable-node-selected {
+	box-shadow: 0 0 0 2px #1976d2;
+}
+.editable-node-header {
+	text-align: center;
+	border-bottom: 1px solid #ddd;
+	padding-bottom: 4px;
+	margin-bottom: 4px;
+}
+.editable-node-header-input {
+	font-size: 14px;
+	font-weight: 600;
+	border: none;
+	outline: none;
+	background: transparent;
+	text-align: center;
+	color: #111;
+	width: 100%;
+}
+.editable-node-header-span {
+	color: #111;
+	display: block;
+}
+.editable-node-header-placeholder {
+	color: #bbb;
+}
+.editable-node-header-tipo {
+	font-size: 10px;
+	color: #888;
+	margin-top: 2px;
+}
+.editable-node-atributos {
+	font-size: 12px;
+	color: #333;
+}
+.editable-node-atributo-row {
+	display: flex;
+	align-items: center;
+	margin-bottom: 2px;
+	justify-content: space-between;
+}
+.editable-node-atributo-input {
+	font-size: 12px;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: #333;
+	flex: 1;
+}
+.editable-node-atributo-span {
+	flex: 1;
+	cursor: pointer;
+}
+.editable-node-atributo-delete {
+	background: none;
+	border: none;
+	color: #d32f2f;
+	cursor: pointer;
+	font-size: 10px;
+	padding: 0;
+	margin-left: 4px;
+}
+.editable-node-atributo-add-row {
+	display: flex;
+	align-items: center;
+	margin-top: 4px;
+}
+.editable-node-atributo-add-input {
+	font-size: 11px;
+	border: none;
+	outline: none;
+	background: transparent;
+	color: #888;
+	flex: 1;
+	font-style: italic;
+}
+.editable-node-atributo-add-btn {
+	background: none;
+	border: none;
+	color: #1976d2;
+	cursor: pointer;
+	font-size: 12px;
+	padding: 0;
+}
