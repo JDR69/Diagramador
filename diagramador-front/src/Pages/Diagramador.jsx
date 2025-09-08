@@ -3,7 +3,7 @@ import React from 'react';
 import Diagramador from '../Components/Diagramador.jsx';
 import { useState, useCallback } from 'react';
 import { addEdge } from 'reactflow';
-import ChatSidebar from '../Components/ChatSidebar.jsx';
+import ChatSidebar from './ChatSidebar.jsx';
 
 
 const RELACIONES = [
