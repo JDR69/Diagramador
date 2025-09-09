@@ -290,71 +290,99 @@
   background: #e3f2fd;
 }
 
-/* Sidebar derecho (chat) y sidebar izquierdo (herramientas) */
-.sidebar {
-  position: fixed;
-  top: 0;
-  height: 100vh;
-  width: 340px;
-  background: #f8fafd;
-  border-left: 1px solid #ddd;
-  border-right: 1px solid #ddd;
-  z-index: 200;
-  transition: right 0.2s, left 0.2s, width 0.2s;
-  display: flex;
-  flex-direction: column;
-}
-.sidebar.right {
-  right: 0;
-  border-left: 1px solid #ddd;
-  border-right: none;
-}
-.sidebar.left {
-  left: 0;
-  border-right: 1px solid #ddd;
-  border-left: none;
-  background: #f8fafd;
-}
-.sidebar.collapsed {
-  width: 32px;
-  min-width: 32px;
-  max-width: 32px;
-  overflow: hidden;
-}
-.sidebar-toggle {
-  position: absolute;
-  top: 20px;
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #1976d2 80%, #1565c0 100%);
-  color: #fff;
-  border: 2px solid #1976d2;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 210;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px #1976d244;
-  font-size: 22px;
-  transition: background 0.2s, border 0.2s, color 0.2s;
-  opacity: 1;
-}
-.sidebar-toggle:hover {
-  background: #1565c0;
-  color: #fff;
-  border-color: #1565c0;
-  opacity: 0.95;
-}
-.sidebar.right .sidebar-toggle {
-  left: -36px;
-  border-radius: 50%;
-}
-.sidebar.left .sidebar-toggle {
-  right: -36px;
-  border-radius: 50%;
-}
+/* Sidebar layout is now handled in-component using Tailwind classes; legacy global .sidebar rules removed. */
 
 .editable-node, .editable-node * {
   color: #111 !important;
+}
+
+/* Custom sidebar header and toggle styles */
+.chat-sidebar .toggle-btn,
+.left-sidebar .toggle-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.chat-sidebar .toggle-btn:hover,
+.left-sidebar .toggle-btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+
+/* make headers more visible */
+.chat-sidebar > div:first-child,
+.left-sidebar > div:first-child {
+  background: #111827; /* darker */
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* Specific classes to ensure left and right sidebars have padding and borders */
+.left-sidebar {
+  border-right: 2px solid #111827;
+  padding-top: 4px;
+}
+.chat-sidebar {
+  border-left: 2px solid #111827;
+  padding-top: 4px;
+}
+
+
+.chat-sidebar .send-fancy {
+  border-radius: 9999px;
+  padding: 10px 16px;
+  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.25);
+}
+
+/* Left sidebar input visible and spaced */
+.left-sidebar input[type="text"] {
+  border-radius: 8px;
+}
+
+/* Stronger overrides to ensure the chat input and send button are prominent */
+.chat-sidebar form input[type="text"],
+.chat-sidebar .chat-input {
+  width: calc(100% - 1.25rem) !important;
+  padding: 0.15rem 1rem !important;
+  height: 3.25rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(15,23,42,0.08) !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 22px rgba(99,102,241,0.06) !important;
+  font-size: 1rem !important;
+  outline: none !important;
+  color: #0f172a !important;
+}
+
+.chat-sidebar .send-fancy {
+  width: 3.1rem !important;
+  height: 3.1rem !important;
+  border-radius: 91px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 12px 30px rgba(99,102,241,0.18) !important;
+  transform: translateY(-1px) !important;
+  padding: 10px !important;
+}
+
+.chat-sidebar .send-fancy svg {
+  transform: rotate(315deg);
+}
+
+/* Make toggle chevrons visible and styled like the send icon */
+.chat-sidebar .toggle-btn svg {
+  transform: rotate(315deg);
+  color: #fff !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.45));
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+/* Smaller down chevron near title (if present) */
+.chat-sidebar .toggle-btn .w-4 {
+  width: 1rem !important;
+  height: 1rem !important;
+  margin-left: 6px;
+  opacity: 0.9 !important;
 }
