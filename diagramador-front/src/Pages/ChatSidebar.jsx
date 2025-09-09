@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import api from '../Api/Axios';
 import ModernInput from '../Components/ModernInput';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
+import '../styles/ChatSidebar.css';
 
 const initialMessages = [
   { sender: 'bot', text: '¡Hola! Soy tu asistente UML. Pídeme diagramas de clase o hazme preguntas.' }
@@ -48,12 +49,12 @@ export default function ChatSidebar({ setNodos, setAristas }) {
 
   return (
     <div
-      className={`h-full bg-[#1c1c1c] text-white flex flex-col transition-all duration-300 ease-in-out relative ${
-        isOpen ? 'w-96 p-6' : 'w-20 p-4'
+      className={`chat-sidebar h-full bg-[#1c1c1c] text-white flex flex-col transition-all duration-300 ease-in-out relative ${
+        isOpen ? 'w-96 p-0' : 'w-20 p-0'
       }`}
     >
       {/* Header row: button + title */}
-      <div className="flex items-center gap-2 mb-4 mt-2">
+      <div className="flex items-center gap-2 mb-2 mt-2 px-6 pt-4">
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="text-gray-400 hover:text-white focus:outline-none"
@@ -65,28 +66,31 @@ export default function ChatSidebar({ setNodos, setAristas }) {
       {isOpen && (
         <>
           {/* Mensajes tipo chat */}
-          <div className="flex-1 overflow-y-auto mb-4 pr-1">
+          <div className="chat-messages">
             {messages.map((msg, i) => (
-              <div key={i} className={`flex mb-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] px-4 py-2 rounded-2xl text-base shadow ${msg.sender === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-100'}`}>
-                  {msg.text}
-                </div>
+              <div
+                key={i}
+                className={`chat-bubble ${msg.sender === 'user' ? 'user' : 'bot'}`}
+              >
+                {msg.text}
               </div>
             ))}
             <div ref={messagesEndRef} />
           </div>
-          <ModernInput
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSend();
-            }}
-            placeholder="Pregunta lo que quieras"
-            onIconClick={handleSend}
-            showPlus={false}
-            chat={true}
-            loading={loading}
-          />
+          <div className="px-6 pb-6">
+            <ModernInput
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSend();
+              }}
+              placeholder="Pregunta lo que quieras"
+              onIconClick={handleSend}
+              showPlus={false}
+              chat={true}
+              loading={loading}
+            />
+          </div>
         </>
       )}
     </div>
