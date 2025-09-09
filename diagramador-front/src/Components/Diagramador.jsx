@@ -22,7 +22,7 @@ const RELACIONES = [
   { tipo: 'Composición', style: { stroke: '#000', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#filledDiamond)' },
   { tipo: 'Agregación', style: { stroke: '#666', strokeWidth: 2, strokeDasharray: '5,5' }, type: 'relacionConCardinalidad', markerEnd: 'url(#diamond)' },
   { tipo: 'Asociación', style: { stroke: '#1976d2', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#arrow)' },
-  { tipo: 'Herencia', style: { stroke: '#4CAF50', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#triangle)' },
+  { tipo: 'Herencia', style: { stroke: '#214422ff', strokeWidth: 2, strokeDasharray: '0' }, type: 'relacionConCardinalidad', markerEnd: 'url(#triangle)' },
 ];
 
 // =====================
@@ -537,7 +537,7 @@ function Diagramador({ nodesProp, edgesProp, onNodesChange, onEdgesChange, onCon
         >
           <MiniMap />
           <Controls />
-          <Background gap={16} />
+          <Background gap={5} />
         </ReactFlow>
         {/* Menú contextual para relaciones */}
         {menuContextual && (

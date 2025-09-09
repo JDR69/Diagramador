@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
-import { FaPaperPlane, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
+import { ChevronDownIcon, PaperAirplaneIcon } from '@heroicons/react/20/solid';
 import api from '../Api/Axios';
 import '../styles/Diagramador.css';
 
@@ -11,7 +13,6 @@ export default function ChatSidebar({ onPrompt, setNodos, setAristas }) {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(true);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -22,11 +23,9 @@ export default function ChatSidebar({ onPrompt, setNodos, setAristas }) {
     setLoading(true);
     let botMsg = { sender: 'bot', text: 'Generando diagrama(s)...' };
     try {
-      // Llamada real al backend Spring Boot usando instancia centralizada
       const resp = await api.post('/uml-chat', { prompt: input });
       if (resp.data && resp.data.response) {
         botMsg = { sender: 'bot', text: resp.data.response };
-        // Si el backend devuelve instrucciones estructuradas, procesarlas
         if (resp.data.diagram) {
           if (setNodos && setAristas) {
             setNodos(resp.data.diagram.nodes || []);
@@ -42,43 +41,37 @@ export default function ChatSidebar({ onPrompt, setNodos, setAristas }) {
   };
 
   return (
-    <div className={`sidebar right${open ? '' : ' collapsed'}`}>
-      <button className="sidebar-toggle" onClick={() => setOpen(o => !o)}>
-        {open ? <FaChevronRight /> : <FaChevronLeft />}
-      </button>
-      {open && (
-        <>
-          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+    <Popover className="relative h-full float-right">
+      <PopoverButton className="inline-flex items-center gap-x-1 text-sm font-semibold text-gray-900 bg-white px-4 py-2 rounded-r-lg shadow-md border border-gray-200 hover:bg-gray-50 focus:outline-none">
+        <span>Chat</span>
+        <ChevronDownIcon aria-hidden="true" className="w-5 h-5" />
+      </PopoverButton>
+      <PopoverPanel className="absolute right-0 z-10 mt-2 flex w-80 max-w-xs bg-white rounded-3xl shadow-lg p-6 border border-gray-200">
+        <div className="flex flex-col w-full h-96">
+          <div className="flex-1 overflow-y-auto mb-4">
             {messages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: 12, textAlign: msg.sender === 'user' ? 'right' : 'left' }}>
-                <div style={{
-                  display: 'inline-block',
-                  background: msg.sender === 'user' ? '#1976d2' : '#fff',
-                  color: msg.sender === 'user' ? '#ffffffff' : '#222',
-                  borderRadius: 12,
-                  padding: '8px 14px',
-                  maxWidth: 220,
-                  fontSize: 15,
-                  boxShadow: '0 1px 4px #0001'
-                }}>{msg.text}</div>
+              <div key={i} className={`mb-3 text-${msg.sender === 'user' ? 'right' : 'left'}`}> 
+                <div className={`inline-block rounded-xl px-4 py-2 max-w-xs text-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  {msg.text}
+                </div>
               </div>
             ))}
-            {loading && <div style={{ color: '#1976d2', fontStyle: 'italic', margin: 8 }}>Pensando...</div>}
+            {loading && <div className="text-indigo-600 italic my-2">Pensando...</div>}
           </div>
-          <form onSubmit={handleSend} style={{ display: 'flex', borderTop: '1px solid #1976d2', padding: 10, background: '#fff' }}>
+          <form onSubmit={handleSend} className="flex border-t border-indigo-200 pt-2 bg-white">
             <input
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Escribe tu mensaje..."
-              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, padding: 8, borderRadius: 8, background: '#f4f6fa', color: '#000' }}
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
-            <button type="submit" style={{ background: 'none', border: 'none', color: '#1976d2', fontSize: 22, marginLeft: 8, cursor: 'pointer' }}>
-              <FaPaperPlane />
+            <button type="submit" className="ml-2 bg-indigo-600 text-white rounded-lg px-3 py-2 hover:bg-indigo-700 focus:outline-none flex items-center justify-center">
+              <PaperAirplaneIcon className="w-5 h-5" />
             </button>
           </form>
-        </>
-      )}
-    </div>
+        </div>
+      </PopoverPanel>
+    </Popover>
   );
 }

@@ -1,12 +1,12 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import DiagramadorPage from '../Pages/Diagramador';
+import Pantalla from '../Pages/Pantalla';
 
 function AppRoutes() {
 	return (
 		<BrowserRouter>
 			<Routes>
-				<Route path="/diagramador" element={<DiagramadorPage />} />
+				<Route path="/diagramador" element={<Pantalla />} />
 				{/* Puedes agregar más rutas aquí */}
 			</Routes>
 		</BrowserRouter>
