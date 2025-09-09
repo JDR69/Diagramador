@@ -2,8 +2,20 @@
   /* Sidebar specific styles */
   background-color: #1c1c1c;
   color: white;
-  padding: 5px;
+  padding: 5px 10px 0px 10px;
   border-right: 1px solid #333;
+  box-sizing: border-box;
+  transition: max-width 0.3s cubic-bezier(0.510,0.026,0.368,1.016);
+}
+
+.chat-sidebar.open {
+  max-width: 320px;
+  min-width: 240px;
+}
+
+.chat-sidebar.closed {
+  max-width: 74px;
+  min-width: 58px;
 }
 
 .chat-messages {
@@ -17,10 +29,10 @@
 
 .chat-bubble {
   display: inline-block;
-  max-width: 80%;
+  max-width: 55%;
   padding: 14px 20px;
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 200;
   border-radius: 22px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
   word-break: break-word;
@@ -42,3 +54,4 @@
   border-top-left-radius: 36px;
   align-self: flex-start;
 }
+
