@@ -1,4 +1,4 @@
-import Diagramador from '../Components/Diagramador.jsx';
+import Diagramador from '../Components/Lienzo/Diagramador.jsx';
 import { useState, useCallback } from 'react';
 import { addEdge } from 'reactflow';
 import ChatSidebar from './ChatSidebar.jsx';
@@ -6,7 +6,7 @@ import LeftSidebar from './LeftSidebar.jsx';
 
 
 const RELACIONES = [
-	{ tipo: 'Asociación', descripcion: 'Relación simple entre clases', style: { stroke: '#1976d2', strokeWidth: 2 }, markerEnd: 'url(#arrow)' },
+	{ tipo: 'Asociación', descripcion: 'Relación simple entre clases', style: { stroke: '#1976d2', strokeWidth: 2 }, markerEnd: undefined },
 	{ tipo: 'Asociación Dirigida', descripcion: 'Relación dirigida entre clases', style: { stroke: '#1976d2', strokeWidth: 2 }, markerEnd: 'url(#arrow)', type: 'step' },
 	{ tipo: 'Agregación', descripcion: 'Una clase contiene a otra (pero pueden existir separadas)', style: { stroke: '#666', strokeWidth: 2, strokeDasharray: '5,5' }, markerEnd: 'url(#diamond)', type: 'smoothstep' },
 	{ tipo: 'Composición', descripcion: 'Una clase contiene a otra (dependencia fuerte)', style: { stroke: '#000', strokeWidth: 2 }, markerEnd: 'url(#filledDiamond)', type: 'smoothstep' },
@@ -17,7 +17,7 @@ const RELACIONES = [
 
 
 
-function DiagramadorPage() {
+function Pantalla() {
 	const [nodos, setNodos] = useState([]);
 	const [aristas, setAristas] = useState([]);
 	const [tipoRelacion, setTipoRelacion] = useState(RELACIONES[0].tipo);
@@ -59,16 +59,22 @@ function DiagramadorPage() {
 	// Agregar edge al conectar nodos, usando el tipo de relación seleccionado
 	const handleConnect = useCallback((params) => {
 		const relacion = RELACIONES.find(r => r.tipo === tipoRelacion) || RELACIONES[0];
+		// markerEnd debe ser undefined si no hay, nunca string vacío
+		const markerEnd = relacion.markerEnd === undefined ? undefined : relacion.markerEnd;
 		setAristas((eds) => [
 			...(Array.isArray(eds) ? eds : []),
 			{
 				...params,
 				id: `${params.source}-${params.target}-${Date.now()}`,
-				label: relacion.tipo,
+				label: relacion.tipo === 'Asociación' ? '' : relacion.tipo,
 				animated: false,
 				style: relacion.style,
-				markerEnd: relacion.markerEnd || 'url(#arrow)',
-				type: relacion.type || 'default',
+				markerEnd,
+				type: 'relacionConCardinalidad',
+				data: {
+					label: relacion.tipo,
+					markerEnd,
+				},
 			},
 		]);
 	}, [tipoRelacion]);
@@ -81,22 +87,22 @@ function DiagramadorPage() {
 			const id2 = (Date.now() + 1).toString();
 			setNodos(nds => [
 				...nds,
-				{ id: id1, type: 'editableNode', data: { label: 'ClaseA', tipo: 'Clase' }, position: { x: 200, y: 200 } },
-				{ id: id2, type: 'editableNode', data: { label: 'ClaseB', tipo: 'Clase' }, position: { x: 500, y: 300 } },
+				{ id: id1, type: 'clase', data: { label: 'ClaseA', tipo: 'Clase' }, position: { x: 200, y: 200 } },
+				{ id: id2, type: 'clase', data: { label: 'ClaseB', tipo: 'Clase' }, position: { x: 500, y: 300 } },
 			]);
-			setAristas(eds => [
-				...eds,
-				{
-					id: `${id1}-${id2}-${Date.now()}`,
-					source: id1,
-					target: id2,
-					label: 'Asociación',
-					type: 'relacionConCardinalidad',
-					style: RELACIONES[0].style,
-					markerEnd: RELACIONES[0].markerEnd,
-					data: { cardinalidadOrigen: '1', cardinalidadDestino: '*' }
-				}
-			]);
+					setAristas(eds => [
+						...eds,
+						{
+							id: `${id1}-${id2}-${Date.now()}`,
+							source: id1,
+							target: id2,
+							label: 'Asociación',
+							type: 'relacionConCardinalidad',
+							style: RELACIONES[0].style,
+							markerEnd: undefined,
+							data: { cardinalidadOrigen: '1', cardinalidadDestino: '*' }
+						}
+					]);
 			return '¡Listo! Se agregaron dos clases y una relación de asociación.';
 		}
 		return 'No entendí tu petición, pero puedo ayudarte con diagramas de clase.';
@@ -113,7 +119,7 @@ function DiagramadorPage() {
 						...nds,
 						{
 							id,
-							type: 'editableNode',
+							type: 'clase',
 							data: { label: nombreClase, tipo: 'Clase' },
 							position: { x: 120 + Math.random() * 200, y: 120 + Math.random() * 200 }
 						}
@@ -122,24 +128,7 @@ function DiagramadorPage() {
 			/>
 			{/* Diagrama */}
 			<div className="flex-1 h-full min-h-0 min-w-0 flex flex-col p-0 bg-[#f4f6fa] rounded-none shadow-none">
-				<h1 className="text-4xl font-extrabold text-center mb-6 text-gray-200 tracking-wide drop-shadow-lg select-none">Diagramador de Clases UML</h1>
-				{/* Definición de marcadores SVG para flechas y diamantes */}
-				<svg width="0" height="0">
-					<defs>
-						<marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto" markerUnits="strokeWidth">
-							<path d="M0,0 L10,5 L0,10 Z" fill="#1976d2" />
-						</marker>
-						<marker id="triangle" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto" markerUnits="strokeWidth">
-							<path d="M0,0 L10,5 L0,10 Z" fill="#fff" stroke="#1976d2" strokeWidth="2" />
-						</marker>
-						<marker id="diamond" markerWidth="16" markerHeight="16" refX="16" refY="8" orient="auto" markerUnits="strokeWidth">
-							<polygon points="0,8 8,0 16,8 8,16" fill="#fff" stroke="#1976d2" strokeWidth="2" />
-						</marker>
-						<marker id="filledDiamond" markerWidth="16" markerHeight="16" refX="16" refY="8" orient="auto" markerUnits="strokeWidth">
-							<polygon points="0,8 8,0 16,8 8,16" fill="#1976d2" />
-						</marker>
-					</defs>
-				</svg>
+				<h1 className="text-2xl text-center mb-1 text-gray-200  select-none">Diagramador de Clases UML</h1>
 				<div className="flex-1 min-h-0 min-w-0">
 					<Diagramador
 						nodesProp={nodos}
@@ -166,4 +155,4 @@ function DiagramadorPage() {
 	);
 }
 
-export default DiagramadorPage;
+export default Pantalla;
